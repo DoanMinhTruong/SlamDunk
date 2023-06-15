@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: truong
+    volumes:
+      - ./mysql:/var/lib/mysql
+      - ./data.sql:/docker-entrypoint-initdb.d/data.sql
+    # command: bash -c "mysql -uroot -p 'truong' -e 'CREATE DATABASE slamdunk';mysql -u root -p 'truong' slamdunk < /docker-entrypoint-initdb.d/data.sql"
+    ports:
+      - "3306:3306"
+    # restart: always
+
+  superset:
+    build: .
+    container_name: superset
+    ports:
+      - "8088:8088"
+    environment:
+      SUPERSET_LOAD_EXAMPLES: no
+      SUPERSET_ADMIN_USERNAME: admin
+      SUPERSET_ADMIN_PASSWORD: admin
+      DATABASE_URI: mysql+pymysql://root:truong@mysql:3306/slamdunk
+    command: gunicorn --bind 0.0.0.0:8088 --access-logfile - --error-logfile - --workers 5 --worker-class gthread --threads 4 --timeout 200 --limit-request-line 4094 --limit-request-field_size 8190 "superset.app:create_app()"
+    volumes:
+      - ./superset:/app/superset
+    depends_on:
+      - mysql
+    # restart: always
